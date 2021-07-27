@@ -13,7 +13,7 @@ use write_os_in_rust::println;
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
-    loop {}
+    write_os_in_rust::hlt_loop();
 }
 
 #[no_mangle] // Disable name mangling
@@ -43,7 +43,7 @@ pub extern "C" fn _start() -> ! {
     test_main();
 
     println!("Did not crash!");
-    loop {}
+    write_os_in_rust::hlt_loop();
 }
 
 #[cfg(test)]
