@@ -28,6 +28,13 @@ pub extern "C" fn _start() -> ! {
         stack_overflow();
     }
 
+    use x86_64::registers::control::Cr3;
+
+    let (level_4_page_table, _) = Cr3::read();
+    println!(
+        "Level 4 page table at: {:?}",
+        level_4_page_table.start_address()
+    );
     // comment out below to trigger a stack overflow
     //stack_overflow();
 
@@ -38,6 +45,21 @@ pub extern "C" fn _start() -> ! {
 
     // comment out below to invoke a breakpoint exception
     //x86_64::instructions::interrupts::int3();
+
+    //let ptr = 0xdeadbeef as *mut u32;
+    // set this address from the instruction_pointer printed as debug messages
+    let mut ptr = 0x204c4b as *mut u32;
+    unsafe {
+        let _x = *ptr;
+    }
+    println!("Read worked!");
+    // set this address from the instruction_pointer printed as debug messages
+    ptr = 0x204d4a as *mut u32;
+    unsafe {
+        *ptr = 42;
+    }
+    // write still does not work
+    println!("Write worked!");
 
     #[cfg(test)]
     test_main();
