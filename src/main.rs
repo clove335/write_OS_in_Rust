@@ -6,6 +6,9 @@
 // apply entry point to our OS's entry point "_start"
 #![reexport_test_harness_main = "test_main"]
 
+extern crate alloc;
+
+use alloc::{boxed::Box, collections::VecDeque, rc::Rc, vec, vec::Vec};
 use core::panic::PanicInfo;
 use write_os_in_rust::{memory::BootInfoFrameAllocator, println};
 
@@ -25,7 +28,8 @@ entry_point!(kernel_main);
 fn kernel_main(boot_info: &'static BootInfo) -> ! {
     // this function is the entry point
     // because the linker looks for default '_start' function
-    use write_os_in_rust::memory;
+    use write_os_in_rust::allocator;
+    use write_os_in_rust::memory::{self, BootInfoFrameAllocator};
     use x86_64::VirtAddr;
 
     println!("Hello World{}", "!");
@@ -46,6 +50,36 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     // write string to the screen through the new mapping
     let page_ptr: *mut u64 = page.start_address().as_mut_ptr();
     unsafe { page_ptr.offset(400).write_volatile(0x_f021_f077_f065_f04e) };
+
+    allocator::init_heap(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
+    // allocate a number (Box uses the allocate function)
+    let heap_val = Box::new(41);
+    println!("heap_value at {:p}", heap_val);
+
+    // create dynamically sized vector
+    let mut vec = Vec::new();
+    for i in 0..500 {
+        vec.push(i);
+    }
+    println!("vec at {:p}", vec.as_slice());
+
+    // create Reference Count vector
+    let reference_counted_vec = Rc::new(vec![1, 2, 3]);
+    let cloned_vec = reference_counted_vec.clone();
+    println!(
+        "current reference count is {}",
+        Rc::strong_count(&cloned_vec)
+    );
+    core::mem::drop(reference_counted_vec);
+    println!("reference count is {} now", Rc::strong_count(&cloned_vec));
+
+    // create VecDeque
+    let mut deque = VecDeque::new();
+    deque.push_back(4);
+    deque.push_front(2);
+    for i in 0..deque.len() {
+        println!("index = {}, deque elem = {}", i, deque[i]);
+    }
 
     #[cfg(test)]
     test_main();
