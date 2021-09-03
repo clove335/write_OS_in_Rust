@@ -67,6 +67,17 @@ fn many_boxes() {
     }
 }
 
+// check bump allocations does not work when variable that lives long during the whole loop exists
+#[test_case]
+fn many_boxes_long_lived() {
+    let long_lived = Box::new(1);
+    for i in 0..HEAP_SIZE {
+        let x = Box::new(i);
+        assert_eq!(*x, i);
+    }
+    assert_eq!(*long_lived, 1);
+}
+
 use alloc::collections::VecDeque;
 
 // see if deque is properly allocated and changed
