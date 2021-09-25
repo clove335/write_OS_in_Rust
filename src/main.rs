@@ -9,17 +9,10 @@
 extern crate alloc;
 
 use alloc::{boxed::Box, collections::VecDeque, rc::Rc, vec, vec::Vec};
-use core::panic::PanicInfo;
-use write_os_in_rust::{memory::BootInfoFrameAllocator, println};
-
-#[cfg(not(test))]
-#[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
-    println!("{}", info);
-    write_os_in_rust::hlt_loop();
-}
-
 use bootloader::{entry_point, BootInfo};
+use core::panic::PanicInfo;
+use write_os_in_rust::task::{executor::Executor, keyboard, simple_executor::SimpleExecutor, Task};
+use write_os_in_rust::{memory::BootInfoFrameAllocator, println};
 use x86_64::structures::paging::Page;
 
 entry_point!(kernel_main);
@@ -29,7 +22,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     // this function is the entry point
     // because the linker looks for default '_start' function
     use write_os_in_rust::allocator;
-    use write_os_in_rust::memory::{self, BootInfoFrameAllocator};
+    use write_os_in_rust::memory;
     use x86_64::VirtAddr;
 
     println!("Hello World{}", "!");
@@ -85,6 +78,19 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     test_main();
 
     println!("Did not crash!");
+
+    //learning log
+    //let mut executor = SimpleExecutor::new();
+    let mut executor = Executor::new();
+    executor.spawn(Task::new(example_task()));
+    executor.spawn(Task::new(keyboard::print_keypresses()));
+    executor.run();
+}
+
+#[cfg(not(test))]
+#[panic_handler]
+fn panic(info: &PanicInfo) -> ! {
+    println!("{}", info);
     write_os_in_rust::hlt_loop();
 }
 
@@ -92,4 +98,13 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     write_os_in_rust::test_panic_handler(info)
+}
+
+async fn async_number() -> u32 {
+    42
+}
+
+async fn example_task() {
+    let number = async_number().await;
+    println!("async number: {}", number);
 }
